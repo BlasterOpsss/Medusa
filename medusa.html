@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Medusa JF-4 — Field Simulator</title>
+<meta name="description" content="A robotic jellyfish you can take apart piece by piece, built live in three.js.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+<style>
+:root{--bg:#f1fbfa;--bg2:#e3f4f3;--ink:#0e3a3d;--mid:#5d8284;--faint:#9dbcbc;--line:#d3e8e7;--coral:#ff5a3c;--teal:#0f9d8a;--aqua:#46c9bf;--card:rgba(255,255,255,.72)}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:min(.78125vw,1.3889vh)}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:'JetBrains Mono',ui-monospace,monospace;color:var(--ink);-webkit-font-smoothing:antialiased;user-select:none}
+.page{position:fixed;inset:0;background:radial-gradient(90% 80% at 50% 42%,#fafefd 0%,var(--bg) 55%,var(--bg2) 100%)}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+#gl.drag{cursor:grabbing}
+#leaders{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#leaders line{stroke:var(--coral);stroke-width:1}#leaders circle{fill:var(--coral)}
+.tag{position:absolute;left:0;top:0;pointer-events:none;font-size:.8rem;font-weight:600;letter-spacing:.12em;white-space:nowrap;will-change:transform;transition:opacity .25s}
+.tag b{display:inline-block;width:.55rem;height:.55rem;background:var(--coral);margin-right:.5rem}
+.tag i{display:block;font-style:normal;font-weight:400;font-size:.66rem;color:var(--mid);margin-top:.2rem;padding-left:1.05rem}
+.hud{position:absolute;inset:0;pointer-events:none}
+.hud button,.hud .card,.logcard{pointer-events:auto}
+.logo{position:absolute;left:0;top:0;width:12.8rem;height:7rem;background:var(--coral);color:#fff;display:flex;align-items:center;gap:1.1rem;padding-left:2rem;font-size:1.25rem;font-weight:600;letter-spacing:.14em}
+.logo svg{width:3.3rem;height:3.3rem}
+.head{position:absolute;left:14.5rem;top:1.5rem}
+.head .k{font-size:.72rem;letter-spacing:.2em;color:var(--mid)}
+.head h1{font:700 2.8rem/1 Inter,sans-serif;letter-spacing:-.01em;margin:.5rem 0 .6rem}
+.head h1 em{font-style:normal;color:var(--coral);font-weight:600;margin-left:.3rem}
+.head .s{font-size:.82rem;letter-spacing:.18em;color:var(--mid)}
+.load{position:absolute;left:56rem;top:1.7rem;width:27rem}
+.load .row{display:flex;justify-content:space-between;font-size:.72rem;letter-spacing:.14em;color:var(--mid)}
+.load .row b{color:var(--ink);font-weight:600}
+#loadbar{display:flex;gap:.16rem;height:1.5rem;margin:.45rem 0 .4rem}#loadbar i{flex:1;background:var(--line)}
+.load .row.m{font-size:.6rem;color:var(--faint)}
+.meta{position:absolute;right:5rem;top:1.7rem;display:flex;gap:2.8rem}
+.meta div{font-size:.72rem;letter-spacing:.14em;color:var(--mid);border-left:1px solid var(--line);padding-left:1rem;min-width:7rem}
+.meta b{display:block;margin-top:.75rem;font-size:.95rem;font-weight:500;color:var(--ink);letter-spacing:.06em;white-space:nowrap}
+.dot{display:inline-block;width:.45rem;height:.45rem;border-radius:50%;background:var(--teal);margin-right:.5rem;vertical-align:.1rem}.dot.hot{background:var(--coral)}
+.plus{position:absolute;left:51rem;top:6.8rem;width:27rem;display:grid;grid-template-columns:repeat(14,1fr);row-gap:.8rem;color:var(--coral);font-size:.9rem;line-height:1;opacity:.55}
+.card{position:absolute;background:var(--card);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.8);box-shadow:0 .4rem 2rem rgba(40,110,110,.07);padding:1rem 1.1rem;width:23rem}
+.ct{display:flex;justify-content:space-between;align-items:center;font-size:.82rem;font-weight:600;letter-spacing:.14em}
+.ct span{border-left:.26rem solid var(--coral);padding-left:.55rem}.ct small{font-size:.66rem;color:var(--faint);font-weight:400}
+.big{font:700 2.8rem/1 Inter,sans-serif}.big small{font:500 1.1rem Inter,sans-serif;color:var(--mid);margin-left:.2rem}
+.l{left:2rem}.r{right:2rem}
+#cJet{top:8.7rem;height:17.8rem}#cAsm{top:8.7rem;height:8.9rem}#cDis{top:19.2rem;height:8.6rem}
+.jr{display:flex;justify-content:space-between;align-items:flex-end;margin-top:.5rem}
+#chart{display:block;width:100%;height:7.2rem;margin-top:.6rem}
+.foot{display:flex;justify-content:space-between;font-size:.66rem;letter-spacing:.12em;color:var(--mid);margin-top:.5rem}.foot b{color:var(--ink);font-weight:500}
+.btns{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.75rem}
+.btns button{font:500 .72rem 'JetBrains Mono',monospace;letter-spacing:.1em;color:var(--ink);background:rgba(255,255,255,.75);border:1px solid var(--line);padding:.42rem .7rem;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+.btns button:hover{border-color:var(--coral)}.btns button.on{background:var(--coral);border-color:var(--coral);color:#fff}
+#mode{position:absolute;left:27.6rem;top:52.2rem}
+#mode .t{font-size:.68rem;letter-spacing:.16em;color:var(--mid)}
+#mode .m{font:700 2.3rem/1.1 Inter,sans-serif;color:var(--coral);letter-spacing:-.005em;margin:.15rem 0}
+#mode .d{font-size:.66rem;letter-spacing:.1em;color:var(--mid)}
+.logcard{position:absolute;left:26.5rem;right:26.5rem;top:60.8rem;height:7.8rem;background:var(--card);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.85);box-shadow:0 .4rem 2rem rgba(40,110,110,.07);padding:.9rem 1.2rem}
+.lg{display:grid;grid-template-columns:3.6rem 1fr;gap:1.1rem;align-items:center;margin-top:.15rem}
+#play{width:3.4rem;height:3.4rem;border-radius:50%;background:var(--coral);border:0;display:grid;place-items:center;cursor:pointer}
+#play svg{width:1.3rem;height:1.3rem;fill:#fff}
+.lgh{display:flex;justify-content:space-between;font-size:.66rem;letter-spacing:.14em;color:var(--mid)}
+#msg{color:var(--coral);font-weight:600}
+#rail{position:relative;height:1.6rem;cursor:pointer;margin-top:.2rem;touch-action:none}
+#rail .b{position:absolute;left:0;right:0;top:50%;height:2px;background:var(--line)}
+#fill{position:absolute;left:0;top:50%;height:2px;background:var(--coral)}
+#knob{position:absolute;top:50%;width:1.05rem;height:1.05rem;margin:-.52rem 0 0 -.52rem;border-radius:50%;background:#fff;border:2px solid var(--coral)}
+#rail em{position:absolute;top:50%;width:1px;height:1rem;margin-top:-.5rem;background:var(--faint)}
+.sm{display:flex;justify-content:space-between;font-size:.68rem;letter-spacing:.1em;color:var(--mid)}
+.bot{position:absolute;left:2rem;right:2rem;bottom:.9rem;display:flex;justify-content:space-between;font-size:.66rem;letter-spacing:.2em;color:var(--mid)}.bot b{color:var(--coral);font-weight:500}
+@media (max-width:820px){
+ html{font-size:10px}
+ .load,.meta,.plus,#cJet,#cDis,.bot{display:none}
+ .logo{width:9rem;height:6rem;padding-left:1.2rem;gap:.6rem;font-size:1rem}.logo svg{width:2.4rem;height:2.4rem}
+ .head{left:10.4rem;top:1rem}.head h1{font-size:2.2rem;margin:.3rem 0}.head .k{display:none}.head .s{font-size:.62rem;letter-spacing:.06em}
+ #cAsm{left:1.6rem;right:1.6rem;width:auto;top:auto;bottom:9.8rem;height:auto;padding:.7rem .8rem}#cAsm .ct{display:none}#cAsm .btns{margin-top:0}
+ #mode{left:1.6rem;top:7.4rem}#mode .m{font-size:2rem}
+ .logcard{left:1.6rem;right:1.6rem;top:auto;bottom:1.4rem;height:7.6rem}
+}
+</style></head><body>
+<main class="page">
+<canvas id="gl"></canvas><svg id="leaders"></svg><div id="tags"></div>
+<div class="hud">
+ <div class="logo"><svg viewBox="0 0 40 40" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M7 20C7 11 13 6 20 6s13 5 13 14c-3 2-6 1-8 0-3 1.500-7 1.500-10 0-2 1-5 2-8 0Z"/><path d="M12 23c0 4-3 5-2 9M17 24c0 4-2 7 0 11M23 24c0 4 2 7 0 11M28 23c0 4 3 5 2 9"/></svg>JF-4</div>
+ <div class="head"><div class="k">ROBOTIC FIELD-SIMULATOR / OCEANIC EXPLORATION PLATFORM</div><h1>Medusa JF-4<em>/</em></h1><div class="s">SOFT-ROBOTIC TENTACLE DRONE / FLUID PROPULSION</div></div>
+ <div class="load"><div class="row"><span>JET LOAD</span><b id="loadv">0%</b></div><div id="loadbar"></div><div class="row m"><span>IDLE</span><span>THRUST</span><span>BURST</span></div></div>
+ <div class="meta"><div>UNIT ID<b>JF4-0731</b></div><div>RUNTIME<b id="rt">00:00:00</b></div><div>STATUS<b id="st"><span class="dot"></span>JETTING</b></div><div>OPERATOR<b>TANK 2 · M.S.</b></div></div>
+ <div class="plus" id="plus"></div>
+ <section class="card l" id="cJet"><div class="ct"><span>JET</span><small>01</small></div>
+  <div class="jr"><div class="big"><span id="kpa">0</span><small>KPA</small></div><div class="big" style="font-size:1.9rem"><span id="thr">0</span> N</div></div>
+  <div class="foot" style="margin-top:.2rem"><span>BELL PRESSURE</span><span>THRUST</span></div>
+  <canvas id="chart"></canvas>
+  <div class="foot"><span>PULSE <b id="pul">0.0 HZ</b></span><span id="sipst">SIPHON IDLE</span></div></section>
+ <section class="card r" id="cAsm"><div class="ct"><span>ASSEMBLIES</span><small>05</small></div><div class="btns" id="asm"></div></section>
+ <section class="card r" id="cDis"><div class="ct"><span>DISPLAY</span><small>06</small></div><div class="btns" id="dis"></div></section>
+ <div id="mode"><div class="t">OPERATING MODE</div><div class="m" id="mm">JETTING</div><div class="d" id="md"></div></div>
+ <div class="logcard"><div class="ct"><span>OPERATION LOG</span><small>08</small></div>
+  <div class="lg"><button id="play" aria-label="Pause"><svg viewBox="0 0 20 20" id="pi"><rect x="4" y="3" width="4" height="14"/><rect x="12" y="3" width="4" height="14"/></svg></button>
+  <div><div class="lgh"><span>DIVE</span><span id="msg">OPERATOR · HERO</span><span>SURFACE</span></div><div id="rail"><div class="b"></div><div id="fill"></div><div id="knob"></div></div><div class="sm"><span id="tc">00:00 / 00:25</span><span>8 OPERATOR ACTIONS</span></div></div></div></div>
+ <div class="bot"><span>FIELD SIMULATOR · PROCEDURAL MODEL · 8 ARMS · 1 OPTIC · 1 SIPHON</span><b>MEDUSA MARINE ROBOTICS · DEEP LAB //////</b></div>
+</div></main>
+<script type="module">
+import*as THREE from 'three';
+import{RoomEnvironment}from 'three/addons/environments/RoomEnvironment.js';
+const $=i=>document.getElementById(i),sm=x=>x*x*(3-2*x),PI=Math.PI,DUR=25;
+const tr=(k,t)=>{if(t<=k[0][0])return k[0][1];for(let i=0;i<k.length-1;i++){const a=k[i],b=k[i+1];if(t<b[0])return a[1]+(b[1]-a[1])*sm((t-a[0])/(b[0]-a[0]))}return k[k.length-1][1]};
+const TR={
+ rise:[[0,-9],[2.6,0],[22,0],[25,10]],amp:[[0,1],[2.6,.15],[21.8,.15],[22.4,1]],coil:[[0,0],[2.6,1],[21.5,1],[22.2,0]],
+ opt:[[3.3,0],[4.6,1],[5.4,1],[6.4,0]],petal:[[5.3,0],[6.4,1],[7.2,1],[8.2,.35],[9.2,0]],
+ pump:[[7.3,0],[8.6,1],[9.6,1],[10.8,0]],arm2:[[9.6,0],[10.6,1],[12,1],[12.8,0]],
+ sip:[[12.5,0],[13.6,1],[15,1],[15.8,.4],[16.4,0]],ex:[[15.6,0],[17.2,1],[18.4,1],[19.3,0]],
+ turn:[[15.8,0],[19.3,5.76],[21,2*PI]],wake:[[0,1],[2.4,0],[21.8,0],[22.4,1]],
+ dist:[[0,15],[3,15],[4.4,8.5],[6.4,11],[7.6,10],[9.6,10],[11,9],[12.4,13],[13.4,9],[15.4,12],[15.8,14],[19.3,15],[21,17],[25,15]],
+ el:[[0,.1],[12.4,.1],[13.6,-.5],[15.4,.1],[25,.1]],ty:[[0,.5],[3,.5],[4.4,1.5],[6.4,.8],[7.6,1.6],[9.6,.7],[12.4,.5],[13.6,-.2],[15.4,.5]]};
+const MODES=[[0,'JETTING','HERO','Rises from below · bell 1.8 Hz · wake on'],[2.6,'HOLDING','HERO','Arms coil out · station keeping'],[3.3,'OPTICS OPEN','OPTICS','Gear ring and lens unscrew · iris opens'],[5.7,'BELL OPEN','BELL','8 glass petals hinge at the rim'],[7.5,'PUMP OUT','PUMP','Pump core rises, spinning'],[9.9,'ARM R2 APART','ARM R2','28 links separate'],[12.7,'SIPHON OPEN','SIPHON','Sleeves telescope · 6 flaps open'],[15.8,'TEARDOWN','TEARDOWN','330° turntable · parts fly apart'],[19.3,'REASSEMBLY','REASSEMBLY','Parts return before the turn ends'],[21,'HOLDING','HERO','Wide hold'],[22,'DEPARTING','DEPART','Jets upward and leaves the frame']];
+const ASM=[['HERO',21],['OPTICS',3.3],['BELL',5.7],['PUMP',7.5],['ARM R2',9.9],['SIPHON',12.7]];
+let t=0,playing=true,F={labels:1,exp:0,wake:1,turn:0};
+
+// ---------- renderer / scene
+const cv=$('gl'),R=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});
+R.setPixelRatio(Math.min(devicePixelRatio,1.75));R.toneMapping=THREE.NeutralToneMapping;R.toneMappingExposure=1.02;R.outputColorSpace=THREE.SRGBColorSpace;
+const S=new THREE.Scene();S.environment=new THREE.PMREMGenerator(R).fromScene(new RoomEnvironment(),.04).texture;S.environmentIntensity=.62;
+const cam=new THREE.PerspectiveCamera(26,1,.1,100);
+const key=new THREE.DirectionalLight(0xffffff,1.6);key.position.set(4,7,5);S.add(key);S.add(new THREE.HemisphereLight(0xbff3ee,0xe3f4f3,.8));
+const fill=new THREE.DirectionalLight(0x9fe8e0,.7);fill.position.set(-5,2,-4);S.add(fill);
+
+const mat=(c,r=.5,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
+const CER=mat(0xf2f7f6,.35),DK=mat(0x15292b,.5,.4),CO=mat(0xff5a3c,.4),AQ=mat(0x46c9bf,.35),ST=mat(0xaab8b8,.3,.9),BLK=mat(0x050909,.12,.3);
+const GL=new THREE.MeshPhysicalMaterial({color:0xdff8f5,roughness:.08,metalness:0,transparent:true,opacity:.4,side:THREE.DoubleSide,depthWrite:false});
+GL.onBeforeCompile=s=>{s.fragmentShader=s.fragmentShader.replace('#include <opaque_fragment>',
+ 'float fr=pow(1.0-abs(dot(normalize(vViewPosition),normalize(normal))),2.2);diffuseColor.a=mix(.1,.72,fr);outgoingLight+=vec3(.25,.85,.8)*fr*.4;\n#include <opaque_fragment>')};
+const M=new THREE.Group();S.add(M);
+const add=(p,g,m,x=0,y=0,z=0)=>{const o=new THREE.Mesh(g,m);o.position.set(x,y,z);p.add(o);return o};
+
+// ---------- bell: 8 hinged sectors
+const BR=1.34,BH=1.62,pts=[];for(let i=0;i<=16;i++){const a=i/16*PI/2;pts.push(new THREE.Vector2(BR*Math.sin(a),BH*Math.cos(a)))}
+const glassGeo=new THREE.LatheGeometry(pts,8,-PI/8+.012,PI/4-.024),sec=[];
+for(let k=0;k<8;k++){const o=new THREE.Group();o.rotation.y=k*PI/4;const pv=new THREE.Group();pv.position.z=BR;
+ add(pv,glassGeo,GL,0,0,-BR);add(pv,new THREE.BoxGeometry(.9,.07,.06),k%2?CER:ST,0,0,0);
+ add(pv,new THREE.BoxGeometry(.5,.05,.02),DK,0,.9,-.09);
+ add(pv,new THREE.BoxGeometry(.016,.9,.02),CER,.3,.45,-.05);add(pv,new THREE.BoxGeometry(.016,.9,.02),CER,-.3,.45,-.05);
+ add(pv,new THREE.BoxGeometry(.16,.1,.03),k%2?AQ:CO,0,.35,-.02);
+ o.add(pv);M.add(o);sec.push({o,pv,dir:new THREE.Vector3(Math.sin(k*PI/4),0,Math.cos(k*PI/4))})}
+const hoop=add(M,new THREE.TorusGeometry(1.25,.025,8,64),AQ,0,.05,0);hoop.rotation.x=PI/2;
+const ring2=add(M,new THREE.TorusGeometry(.7,.02,8,48),CO,0,.12,0);ring2.rotation.x=PI/2;
+add(M,new THREE.CylinderGeometry(.45,.65,.5,32),DK,0,.95,0);
+for(let k=0;k<8;k++){const s=add(M,new THREE.BoxGeometry(1.2,.02,.03),DK,0,.1,0);s.rotation.y=k*PI/4;s.position.set(Math.sin(k*PI/4)*.6,.1,Math.cos(k*PI/4)*.6);s.rotation.y=k*PI/4+PI/2}
+
+// ---------- pump core
+const P=new THREE.Group();M.add(P);add(P,new THREE.CylinderGeometry(.3,.3,.7,32),ST);
+for(let i=0;i<6;i++){const c=add(P,new THREE.TorusGeometry(.31,.018,8,32),AQ,0,-.28+i*.11,0);c.rotation.x=PI/2}
+const gear=new THREE.Group();gear.position.y=.2;P.add(gear);for(let i=0;i<20;i++){const a=i/20*2*PI,b=add(gear,new THREE.BoxGeometry(.06,.07,.05),CO,Math.sin(a)*.4,0,Math.cos(a)*.4);b.rotation.y=a}
+const pist=new THREE.Group();P.add(pist);for(let i=0;i<7;i++){const a=i/7*2*PI;add(pist,new THREE.CylinderGeometry(.035,.035,.6,10),ST,Math.sin(a)*.2,.05,Math.cos(a)*.2)}
+for(let i=0;i<16;i++){const a=i/16*2*PI,f=add(P,new THREE.BoxGeometry(.012,.5,.12),CER,Math.sin(a)*.36,-.05,Math.cos(a)*.36);f.rotation.y=a}
+const cap=add(P,new THREE.CylinderGeometry(.34,.34,.05,32),CO,0,.4,0);
+
+// ---------- optic (apex)
+const O=new THREE.Group();O.position.y=BH;M.add(O);add(O,new THREE.CylinderGeometry(.34,.4,.22,32),DK,0,-.05,0);
+const og=new THREE.Group();O.add(og);og.position.y=.1;const ot=add(og,new THREE.TorusGeometry(.3,.035,8,36),CO);ot.rotation.x=PI/2;
+for(let i=0;i<18;i++){const a=i/18*2*PI,b=add(og,new THREE.BoxGeometry(.045,.05,.05),CO,Math.sin(a)*.34,0,Math.cos(a)*.34);b.rotation.y=a}
+const orim=add(O,new THREE.TorusGeometry(.34,.014,8,36),AQ,0,.07,0);orim.rotation.x=PI/2;
+const lens=add(O,new THREE.SphereGeometry(.24,32,16,0,2*PI,0,PI/2),BLK,0,.1,0);
+const blades=[];for(let i=0;i<8;i++){const b=add(O,new THREE.BoxGeometry(.16,.01,.07),ST);blades.push(b)}
+
+// ---------- siphon
+const SP=new THREE.Group();SP.position.y=-.05;M.add(SP);
+for(let i=0;i<3;i++){const m=(i%2?CER:AQ).clone();m.side=THREE.DoubleSide;add(SP,new THREE.CylinderGeometry(.3-i*.04,.3-i*.04,.45,28,1,true),m)}
+const NZ=new THREE.Group();SP.add(NZ);const flaps=[];
+for(let j=0;j<6;j++){const pv=new THREE.Group();pv.rotation.y=j*PI/3;const f=new THREE.Group();f.position.z=.17;pv.add(f);add(f,new THREE.BoxGeometry(.13,.22,.015),j%2?CER:CO,0,-.11,0);NZ.add(pv);flaps.push(f)}
+
+// ---------- arms: 8 x 28 links as instanced parts
+const NA=8,NL=28,sl=new THREE.InstancedMesh(new THREE.CylinderGeometry(.07,.055,.15,12),CER,NA*NL),rg=new THREE.InstancedMesh(new THREE.TorusGeometry(.075,.014,6,16).rotateX(PI/2),AQ,NA*NL),tg=new THREE.InstancedMesh(new THREE.BoxGeometry(.03,.07,.03),CO,NA*NL);
+[sl,rg,tg].forEach(m=>{m.frustumCulled=false;M.add(m)});
+const D=new THREE.Object3D(),q=new THREE.Quaternion(),Yv=new THREE.Vector3(0,1,0),d=new THREE.Vector3(),pos=new THREE.Vector3(),mark=new THREE.Object3D();M.add(mark);
+function arms(time,sp,a2,ex){for(let k=0;k<NA;k++){const A=k*PI/4+PI/8,dx=Math.sin(A),dz=Math.cos(A),th0=k%2?.55:.95,ap=k==1?a2:0,L=.17*(1+ap*1.1+ex*1.4);
+ pos.set(dx*(1+ex*2.4),.02-ex*.9,dz*(1+ex*2.4));
+ for(let i=0;i<NL;i++){let th=th0*(.3+.7*sp)+sp*.05*i+.22*Math.sin(time*2.2-i*.35)*(.4+.6*sp);th=th*(1-ap)+1.3*ap;
+  d.set(dx*Math.sin(th),-Math.cos(th),dz*Math.sin(th));q.setFromUnitVectors(Yv,d);const id=k*NL+i,w=1-i*.012;
+  D.position.copy(pos).addScaledVector(d,L/2);D.quaternion.copy(q);D.scale.set(w,1,w);D.updateMatrix();sl.setMatrixAt(id,D.matrix);rg.setMatrixAt(id,D.matrix);
+  D.position.addScaledVector(d,0);D.scale.set(w,1,w);if(i%7==0){D.position.x+=dz*.07*w;D.position.z-=dx*.07*w}else D.scale.setScalar(0);D.updateMatrix();tg.setMatrixAt(id,D.matrix);
+  if(k==1&&i==14)mark.position.copy(pos);pos.addScaledVector(d,L)}}
+ sl.instanceMatrix.needsUpdate=rg.instanceMatrix.needsUpdate=tg.instanceMatrix.needsUpdate=true}
+
+// ---------- stage rings + wake
+const stage=new THREE.Group();S.add(stage);
+[2.4,3.3,4.2,5.2,6.4].forEach((r,i)=>{const g=new THREE.BufferGeometry().setFromPoints(Array.from({length:97},(_,j)=>new THREE.Vector3(Math.cos(j/96*2*PI)*r,0,Math.sin(j/96*2*PI)*r)));
+ const l=new THREE.Line(g,i%2?new THREE.LineDashedMaterial({color:0x9dbcbc,dashSize:.1,gapSize:.14}):new THREE.LineBasicMaterial({color:0xbcdcda}));l.computeLineDistances();l.rotation.y=i;stage.add(l);
+ add(l,new THREE.SphereGeometry(.04,8,6),CO,r,0,0)});
+stage.position.y=-2.2;
+const wake=new THREE.InstancedMesh(new THREE.SphereGeometry(.05,8,6),new THREE.MeshStandardMaterial({color:0xaeeeea,transparent:true,opacity:.55,roughness:.1}),90);wake.frustumCulled=false;S.add(wake);
+
+// ---------- HUD
+const lb=$('loadbar');for(let i=0;i<50;i++)lb.append(document.createElement('i'));const cells=[...lb.children];
+$('plus').innerHTML='<span>+</span>'.repeat(28);
+const rail=$('rail');MODES.forEach(m=>{const e=document.createElement('em');e.style.left=m[0]/DUR*100+'%';rail.append(e)});
+const ab=$('asm');ASM.forEach(([n,s])=>{const b=document.createElement('button');b.textContent=n;b.onclick=()=>{t=s;draw()};b.dataset.n=n;ab.append(b)});
+const db=$('dis');[['LABELS','labels'],['EXPLODED','exp'],['JET WAKE','wake'],['TURNTABLE','turn']].forEach(([n,k])=>{const b=document.createElement('button');b.textContent=n;b.className=F[k]?'on':'';b.onclick=()=>{F[k]=F[k]?0:1;b.classList.toggle('on',!!F[k])};db.append(b)});
+const LAB={'OPTICS OPEN':[['GEAR RING','18 TEETH',og],['GLOSS LENS','Ø 0.48 M',lens]],'BELL OPEN':[['GLASS PETAL','8 SECTORS',sec[0].pv],['RIM BAND','CERAMIC',sec[2].pv]],'PUMP OUT':[['PUMP CORE','20T GEAR',gear],['PISTONS','7 × STEEL',pist]],'ARM R2 APART':[['ARM R2','28 LINKS',mark]],'SIPHON OPEN':[['SIPHON','3 STAGES',SP],['NOZZLE','6 FLAPS',NZ]],'HOLDING':[['BELL SHELL','Ø 2.68 M',O],['SIPHON','FLAP NOZZLE',SP]]};
+const tagsEl=$('tags'),lead=$('leaders'),V=new THREE.Vector3(),hist=[],ghost=[];let lastMode=-1,tagSet=[];
+function setTags(name){tagsEl.innerHTML='';lead.innerHTML='';tagSet=(LAB[name]||[]).map(([a,b,o])=>{const e=document.createElement('div');e.className='tag';e.innerHTML='<b></b>'+a+'<i>'+b+'</i>';tagsEl.append(e);const l=document.createElementNS('http://www.w3.org/2000/svg','line'),c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('r',3);lead.append(l,c);return{e,l,c,o}})}
+const pad=n=>String(n|0).padStart(2,'0');
+const cx=$('chart').getContext('2d');
+function chart(p){hist.push(p);ghost.push(hist[Math.max(0,hist.length-12)]);if(hist.length>120){hist.shift();ghost.shift()}
+ const c=$('chart'),w=c.width=c.clientWidth*2,h=c.height=c.clientHeight*2;cx.clearRect(0,0,w,h);
+ [[ghost,'#c4d8d8',2],[hist,'#ff5a3c',3]].forEach(([a,col,lw])=>{cx.beginPath();a.forEach((v,i)=>{const x=i/119*w,y=h-4-v*(h-8);i?cx.lineTo(x,y):cx.moveTo(x,y)});cx.strokeStyle=col;cx.lineWidth=lw;cx.stroke()})}
+
+// ---------- the one function of the playhead
+const target=new THREE.Vector3();let yaw=0,pit=0,dy=0,dp=0,drag=false,lx=0,ly=0,real=0;
+function draw(){
+ const rise=tr(TR.rise,t),amp=tr(TR.amp,t),p=Math.sin(2*PI*1.8*t)*amp,ex=Math.max(tr(TR.ex,t),F.exp?1:0),
+  opt=tr(TR.opt,t),pet=tr(TR.petal,t),pmp=tr(TR.pump,t),a2=tr(TR.arm2,t),sip=tr(TR.sip,t),sp=tr(TR.coil,t);
+ M.position.y=rise+Math.sin(real*.9)*.04;
+ const sq=Math.max(-1,p);
+ sec.forEach(s=>{s.pv.rotation.x=pet*1.15;s.o.position.copy(s.dir).multiplyScalar(ex*2);s.o.position.y=ex*.6;s.o.scale.set(1+.07*sq*(1-pet),1-.05*sq*(1-pet),1+.07*sq*(1-pet))});
+ P.position.y=.75+pmp*1.7+ex*1.1;P.rotation.y=t*(.6+pmp*5);cap.position.y=.4+pmp*.55;pist.position.y=Math.sin(t*14)*.04*pmp;
+ O.position.y=BH+ex*1.6;og.position.y=.1+opt*.45;og.rotation.y=opt*PI*2;lens.position.y=.1+opt*.9;
+ blades.forEach((b,i)=>{const a=i/8*2*PI+opt*1.2,r=.14+opt*.1;b.position.set(Math.sin(a)*r,.11+opt*.45,Math.cos(a)*r);b.rotation.y=a+opt*.8});
+ SP.position.y=-.05-ex*1.5;SP.children.slice(0,3).forEach((s,i)=>s.position.y=-.22-i*.12-sip*i*.38);
+ NZ.position.y=-.62-sip*.76;flaps.forEach(f=>f.rotation.x=-sip*.9);
+ arms(real,sp,a2,ex);
+ stage.rotation.y=real*.05;
+ // camera
+ const az=tr(TR.turn,t)+yaw+(F.turn?real*.3:0),el=Math.max(-1.1,Math.min(1.1,tr(TR.el,t)+pit)),ds=tr(TR.dist,t);
+ target.set(0,tr(TR.ty,t)+rise*.35,0);cam.position.set(target.x+ds*Math.cos(el)*Math.sin(az),target.y+ds*Math.sin(el),target.z+ds*Math.cos(el)*Math.cos(az));cam.lookAt(target);
+ key.position.set(M.position.x+4,M.position.y+7,5);
+ // wake
+ const w=tr(TR.wake,t)*F.wake,ny=M.position.y-1.4-sip*.8;for(let j=0;j<90;j++){const ph=(real*.7+j*.618034)%1;D.position.set(Math.sin(j*2.4+real)*.2*(1+ph),ny-ph*4,Math.cos(j*2.4+real)*.2*(1+ph));D.scale.setScalar(w*(1-ph)*(.6+j%3*.4)+.0001);D.rotation.set(0,0,0);D.updateMatrix();wake.setMatrixAt(j,D.matrix)}wake.instanceMatrix.needsUpdate=true;
+ // hud
+ let mi=0;MODES.forEach((m,i)=>{if(t>=m[0])mi=i});const m=MODES[mi];
+ if(mi!=lastMode){lastMode=mi;$('mm').textContent=m[1];$('md').textContent=m[3];$('msg').textContent='OPERATOR · '+(m[2]=='HERO'?'HERO VIEW':m[2]=='DEPART'?'DEPART':'ISOLATE '+m[2]);setTags(m[1]);
+  $('st').innerHTML='<span class="dot'+(mi==7?' hot':'')+'"></span>'+m[1];ab.childNodes.forEach(b=>b.classList.toggle('on',b.dataset.n==m[2]))}
+ const load=Math.min(1,amp*(.35+.65*Math.max(0,p))+.05),on=Math.round(load*50);
+ cells.forEach((c,i)=>c.style.background=i<on?(i<25?'#0e3a3d':i<40?'#0f9d8a':'#ff5a3c'):'');
+ $('loadv').textContent=Math.round(load*100)+'%';$('kpa').textContent=Math.round(8+92*load);$('thr').textContent=(load*18).toFixed(1);
+ $('pul').textContent=(amp>.5?1.8:.4).toFixed(1)+' HZ';$('sipst').textContent=sip>.05?'SIPHON OPEN':'SIPHON IDLE';
+ $('rt').textContent='00:'+pad(t/60)+':'+pad(t%60);$('tc').textContent=pad(t/60)+':'+pad(t%60)+' / 00:25';
+ $('fill').style.width=$('knob').style.left=t/DUR*100+'%';chart(Math.max(.05,Math.min(1,.5+.5*p*amp+.1)));
+ // labels
+ const W=innerWidth,H=innerHeight;tagSet.forEach(({e,l,c,o},i)=>{o.getWorldPosition(V);V.project(cam);const x=(V.x*.5+.5)*W,y=(-V.y*.5+.5)*H,tx=x+(i%2?-1:1)*Math.min(W*.14,140)-(i%2?150:0),ty=y-60-i*10;
+  e.style.transform=`translate(${tx}px,${ty}px)`;e.style.opacity=F.labels?1:0;l.setAttribute('x1',x);l.setAttribute('y1',y);l.setAttribute('x2',tx+(i%2?150:0));l.setAttribute('y2',ty+14);c.setAttribute('cx',x);c.setAttribute('cy',y);l.style.display=c.style.display=F.labels?'':'none'});
+ R.render(S,cam)}
+
+// ---------- interaction
+function size(){R.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()}addEventListener('resize',size);size();
+cv.addEventListener('pointerdown',e=>{drag=true;lx=e.clientX;ly=e.clientY;cv.classList.add('drag');cv.setPointerCapture(e.pointerId)});
+cv.addEventListener('pointermove',e=>{if(!drag)return;dy=-(e.clientX-lx)*.006;dp=(e.clientY-ly)*.004;yaw+=dy;pit=Math.max(-.8,Math.min(.8,pit+dp));lx=e.clientX;ly=e.clientY});
+['pointerup','pointercancel'].forEach(n=>cv.addEventListener(n,()=>{drag=false;cv.classList.remove('drag')}));
+const scrub=e=>{const r=rail.getBoundingClientRect();t=Math.max(0,Math.min(DUR-.001,(e.clientX-r.left)/r.width*DUR));draw()};let sd=false;
+rail.addEventListener('pointerdown',e=>{sd=true;rail.setPointerCapture(e.pointerId);scrub(e)});rail.addEventListener('pointermove',e=>sd&&scrub(e));rail.addEventListener('pointerup',()=>sd=false);
+const toggle=()=>{playing=!playing;$('pi').innerHTML=playing?'<rect x="4" y="3" width="4" height="14"/><rect x="12" y="3" width="4" height="14"/>':'<path d="M5 3l12 7-12 7z"/>'};
+$('play').onclick=toggle;addEventListener('keydown',e=>{if(e.code=='Space'){e.preventDefault();toggle()}});
+let last=performance.now();
+(function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-last)/1000);last=now;real+=dt;if(playing&&!sd)t=(t+dt)%DUR;if(!drag){yaw+=dy;dy*=.92;pit*=.995}draw()})(last);
+</script></body></html>

@@ -975,6 +975,8 @@ class H(BaseHTTPRequestHandler):
                     return self._send(200, f.read(), ctype, ICON_CACHE)
             except FileNotFoundError:
                 return self._send(404, {"error": "not found"})
+        if u.path in ("/medusa", "/medusa.html"):
+            return self._send_page(os.path.join(ROOT, "medusa.html"))
         if u.path in ("/", "/index.html"):
             return self._send_page(os.path.join(ROOT, "index.html"))
         return self._send(404, {"error": "not found"})
